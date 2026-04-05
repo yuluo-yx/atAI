@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-verify:
+    name: Build And Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+          components: clippy,rustfmt,rust-src
+
+      - name: Cache Rust Artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: make build
+
+      - name: Verify
+        run: make verify

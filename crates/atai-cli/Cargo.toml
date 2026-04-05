@@ -1,0 +1,17 @@
+[package]
+name = "atai"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "atai"
+path = "src/main.rs"
+
+[dependencies]
+atai-core = { path = "../atai-core" }
+atai-tui = { path = "../atai-tui" }
+anyhow.workspace = true
+clap.workspace = true
+tokio.workspace = true

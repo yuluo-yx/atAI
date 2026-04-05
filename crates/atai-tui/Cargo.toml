@@ -1,0 +1,12 @@
+[package]
+name = "atai-tui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+atai-core = { path = "../atai-core" }
+anyhow.workspace = true
+crossterm.workspace = true
+tokio.workspace = true
