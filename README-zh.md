@@ -21,16 +21,7 @@
 - 支持在执行前快速重新生成同一请求对应的命令
 - 把最终执行权留给用户，而不是自动运行命令
 
-> 提示：配置模型时，优先选择响应速度更快的模型，例如 `qwen3.5-flash`
-
-## 工作流程
-
-1. 输入一个需求，例如 `@ai 帮我找出当前目录下最大的 5 个文件夹`
-2. 工具调用模型生成候选命令
-3. 行内预览只显示一条简洁状态、模型请求耗时、命令内容和当前风险级别
-4. 你可以直接执行、重新生成，或者在当前终端里关闭预览
-5. 本地策略引擎会从 `~/.@ai` 读取黑名单和确认列表
-6. 只有在你确认之后，命令才会真正执行
+> 提示：配置模型时，优先选择响应速度更快的模型并关闭思考模式，例如 `qwen3.5-flash`。
 
 ## 运行时文件
 
@@ -202,27 +193,6 @@ make install
 
 如果 `~/.local/bin` 不在你的 `PATH` 中，需要先把它加进去。
 
-## Make 目标
-
-- `make help`：显示可用目标
-- `make build`：按指定 profile 构建二进制，默认 `release`
-- `make run RUN_ARGS='find the largest directories'`：本地运行
-- `make test`：运行测试
-- `make fmt`：用 `rustfmt` 改写文件格式
-- `make fmt-check`：只检查格式，不改写文件
-- `make check`：运行 `cargo check --workspace --all-targets --all-features`
-- `make clippy`：运行 `clippy`，并把 warning 视为错误
-- `make verify`：依次运行 `fmt-check`、`check`、`clippy` 和 `test`
-- `make install`：安装 `atai` 和 `@ai`
-- `make clean`：清理构建产物
-
 ## 许可证
 
 本项目采用 GNU GPL v3.0 only 许可证。详见 [LICENSE](/Users/shown/workspace/@AI/LICENSE)。
-
-## 当前限制
-
-- 仅支持 macOS 和 Linux
-- 假设使用 POSIX shell 语义
-- 仅支持 OpenAI-compatible 的 `Responses API` 端点
-- 行内预览只负责审阅和确认；实际执行结果会在退出预览后打印

@@ -181,6 +181,14 @@ The default install location is `~/.local/bin`:
 
 If `~/.local/bin` is not in your `PATH`, add it before using the installed command.
 
+## GitHub Releases
+
+The repository publishes a dated release from GitHub Actions on every push to `main` and on manual workflow runs launched from `main`.
+
+- Release tag format: `vYYYY.MM.DD`
+- Release assets: `x86_64-unknown-linux-gnu`, `x86_64-apple-darwin`, and `x86_64-pc-windows-msvc`
+- Re-running the workflow on the same day updates the same release and refreshes the tag to the latest commit on `main`
+
 ## Make Targets
 
 - `make help`: show available targets
@@ -201,7 +209,7 @@ This project is licensed under GNU GPL v3.0 only. See [LICENSE](/Users/shown/wor
 
 ## Current Limits
 
-- macOS and Linux only
-- Assumes POSIX shell semantics
+- Release artifacts are published for Linux, macOS, and Windows
+- The generated commands still assume POSIX shell semantics by default
 - Only supports OpenAI-compatible `Responses API` endpoints
 - The inline review view only handles preview and confirmation; execution output is printed after it exits

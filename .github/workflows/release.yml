@@ -1,0 +1,174 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_VERSION: 1.94.1
+  BINARY_NAME: atai
+  RELEASE_TIMEZONE: Asia/Shanghai
+
+jobs:
+  metadata:
+    name: Prepare Release Metadata
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      release_version: ${{ steps.vars.outputs.release_version }}
+      release_tag: ${{ steps.vars.outputs.release_tag }}
+      release_name: ${{ steps.vars.outputs.release_name }}
+
+    steps:
+      - name: Compute Release Version
+        id: vars
+        shell: bash
+        run: |
+          release_version="$(TZ="${RELEASE_TIMEZONE}" date +'%Y.%m.%d')"
+          echo "release_version=${release_version}" >> "${GITHUB_OUTPUT}"
+          echo "release_tag=v${release_version}" >> "${GITHUB_OUTPUT}"
+          echo "release_name=Release ${release_version}" >> "${GITHUB_OUTPUT}"
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: metadata
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: macos-13
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: ${{ matrix.target }}
+
+      - name: Cache Rust Artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build Release Binary
+        shell: bash
+        run: cargo build -p "${BINARY_NAME}" --release --target "${{ matrix.target }}"
+
+      - name: Package Unix Archive
+        id: package_unix
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.metadata.outputs.release_version }}
+        run: |
+          archive_root="dist/${BINARY_NAME}-${RELEASE_VERSION}-${{ matrix.target }}"
+          archive_file="dist/${BINARY_NAME}-${RELEASE_VERSION}-${{ matrix.target }}.tar.gz"
+
+          mkdir -p "${archive_root}"
+          cp "target/${{ matrix.target }}/release/${BINARY_NAME}" "${archive_root}/${BINARY_NAME}"
+          cp "scripts/@ai" "${archive_root}/@ai"
+          cp README.md README-zh.md LICENSE "${archive_root}/"
+          chmod +x "${archive_root}/${BINARY_NAME}" "${archive_root}/@ai"
+
+          tar -czf "${archive_file}" -C dist "$(basename "${archive_root}")"
+          echo "archive_file=${archive_file}" >> "${GITHUB_OUTPUT}"
+
+      - name: Package Windows Archive
+        id: package_windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ needs.metadata.outputs.release_version }}
+        run: |
+          $archiveRoot = "dist/${env:BINARY_NAME}-$env:RELEASE_VERSION-${{ matrix.target }}"
+          $archiveFile = "dist/${env:BINARY_NAME}-$env:RELEASE_VERSION-${{ matrix.target }}.zip"
+
+          New-Item -ItemType Directory -Path $archiveRoot -Force | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/${env:BINARY_NAME}.exe" "$archiveRoot/${env:BINARY_NAME}.exe"
+          Copy-Item "README.md","README-zh.md","LICENSE" $archiveRoot
+
+          Compress-Archive -Path "$archiveRoot/*" -DestinationPath $archiveFile -Force
+          "archive_file=$archiveFile" >> $env:GITHUB_OUTPUT
+
+      - name: Upload Unix Release Archive
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: ${{ steps.package_unix.outputs.archive_file }}
+          if-no-files-found: error
+
+      - name: Upload Windows Release Archive
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: ${{ steps.package_windows.outputs.archive_file }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish Release
+    needs:
+      - metadata
+      - build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Release Archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: dist
+
+      - name: Move Release Tag To Current Commit
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.metadata.outputs.release_tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --tags --force
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            git push origin ":refs/tags/${RELEASE_TAG}"
+          fi
+
+          git tag -f "${RELEASE_TAG}" "${GITHUB_SHA}"
+          git push origin "refs/tags/${RELEASE_TAG}" --force
+
+      - name: Create Or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.metadata.outputs.release_tag }}
+          name: ${{ needs.metadata.outputs.release_name }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          make_latest: true
+          overwrite_files: true
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
