@@ -39,18 +39,21 @@ jobs:
           echo "release_name=Release ${release_version}" >> "${GITHUB_OUTPUT}"
 
   build:
-    name: Build ${{ matrix.target }}
+    name: Build ${{ matrix.display_name }}
     needs: metadata
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - display_name: Linux x86_64
+            os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
-          - os: macos-13
+          - display_name: macOS Intel x86_64
+            os: macos-15-intel
             target: x86_64-apple-darwin
-          - os: windows-latest
+          - display_name: Windows x86_64
+            os: windows-2022
             target: x86_64-pc-windows-msvc
 
     steps:
