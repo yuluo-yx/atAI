@@ -153,16 +153,16 @@ impl LlmClient {
         let mut body = serde_json::to_value(request)
             .context("Failed to serialize the Responses API request")?;
 
-        if self.uses_dashscope_compatible_thinking_flag() {
-            if let Some(enable_thinking) = self.enable_thinking {
-                let object = body
-                    .as_object_mut()
-                    .context("The serialized request body is not a JSON object")?;
-                object.insert(
-                    "enable_thinking".to_string(),
-                    serde_json::Value::Bool(enable_thinking),
-                );
-            }
+        if self.uses_dashscope_compatible_thinking_flag()
+            && let Some(enable_thinking) = self.enable_thinking
+        {
+            let object = body
+                .as_object_mut()
+                .context("The serialized request body is not a JSON object")?;
+            object.insert(
+                "enable_thinking".to_string(),
+                serde_json::Value::Bool(enable_thinking),
+            );
         }
 
         Ok(body)
