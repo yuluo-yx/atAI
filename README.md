@@ -21,14 +21,7 @@ The project is organized as three Rust crates:
 - Support quick regeneration of the same request before execution
 - Keep execution authority with the user instead of auto-running commands
 
-## Flow
-
-1. Enter a request such as `@ai find the 5 largest directories in the current folder`
-2. The tool calls the model to generate a candidate command
-3. The inline terminal view shows a compact status line with elapsed model time, the command, and the current risk level
-4. You can execute it, regenerate it, or close the preview directly from the current terminal
-5. The local policy engine reads the denylist and confirmation list from `~/.@ai`
-6. The command only runs after you confirm it
+> Tip: When configuring the model, prefer faster-response models and disable thinking mode, for example, qwen3.5-flash.
 
 ## Runtime Files
 
@@ -181,35 +174,6 @@ The default install location is `~/.local/bin`:
 
 If `~/.local/bin` is not in your `PATH`, add it before using the installed command.
 
-## GitHub Releases
-
-The repository publishes a dated release from GitHub Actions on every push to `main` and on manual workflow runs launched from `main`.
-
-- Release tag format: `vYYYY.MM.DD`
-- Release assets: `x86_64-unknown-linux-gnu`, `x86_64-apple-darwin`, and `x86_64-pc-windows-msvc`
-- Re-running the workflow on the same day updates the same release and refreshes the tag to the latest commit on `main`
-
-## Make Targets
-
-- `make help`: show available targets
-- `make build`: build the binary for the selected profile, default `release`
-- `make run RUN_ARGS='find the largest directories'`: run locally
-- `make test`: run tests
-- `make fmt`: rewrite files with `rustfmt`
-- `make fmt-check`: check formatting without rewriting files
-- `make check`: run `cargo check --workspace --all-targets --all-features`
-- `make clippy`: run `clippy` with warnings denied
-- `make verify`: run `fmt-check`, `check`, `clippy`, and `test`
-- `make install`: install `atai` and `@ai`
-- `make clean`: remove build artifacts
-
 ## License
 
 This project is licensed under GNU GPL v3.0 only. See [LICENSE](/Users/shown/workspace/@AI/LICENSE).
-
-## Current Limits
-
-- Release artifacts are published for Linux, macOS, and Windows
-- The generated commands still assume POSIX shell semantics by default
-- Only supports OpenAI-compatible `Responses API` endpoints
-- The inline review view only handles preview and confirmation; execution output is printed after it exits
