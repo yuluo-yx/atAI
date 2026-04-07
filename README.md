@@ -153,11 +153,40 @@ atai --print-only find the 10 largest files in the current directory
 - `Ctrl+C` / `Ctrl+Q`: quit immediately without executing
 - `Esc`: cancel a pending high-risk execution confirmation
 
-## Build And Install
+## Install
+
+Install the latest release with `curl`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yuluo-yx/atAI/main/install.sh | sh
+```
+
+The installer:
+
+- downloads the latest matching release binary from GitHub Releases
+- downloads the `@ai` wrapper script from the same tagged source tree
+- installs `atai` and `@ai` to `~/.local/bin` by default
+- runs `atai config init` automatically only when any required runtime file is missing
+- keeps existing runtime files untouched when `~/.@ai` is already initialized
+
+Optional installer environment variables:
+
+```bash
+ATAI_INSTALL_VERSION=2026.04.07 \
+ATAI_INSTALL_DIR="$HOME/.local/bin" \
+ATAI_INSTALL_REPO="yuluo-yx/atAI" \
+sh install.sh
+```
+
+If `~/.local/bin` is not in your `PATH`, add it before using the installed command.
+
+You can still install from source locally:
 
 ```bash
 make help
 make build
+make build BUILD_TARGET=aarch64-apple-darwin
+make build-all
 make fmt-check
 make check
 make test
@@ -172,7 +201,11 @@ The default install location is `~/.local/bin`:
 - `atai`: the Rust binary
 - `@ai`: a wrapper script that forwards to `atai` in the same directory
 
-If `~/.local/bin` is not in your `PATH`, add it before using the installed command.
+`make build-all` follows the release target matrix and fails on the first missing Rust target or linker/toolchain dependency. The Windows `x86_64-pc-windows-msvc` target usually requires a Windows host with the MSVC toolchain.
+
+`make install` keeps the host-platform behavior and does not install cross-target artifacts.
+
+GitHub Releases now publish raw binaries directly instead of `.tar.gz` or `.zip` archives.
 
 ## License
 

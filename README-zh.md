@@ -172,11 +172,40 @@ atai --print-only 帮我找出当前目录下最大的 10 个文件
 - `Ctrl+C` / `Ctrl+Q`：立即退出，不执行命令
 - `Esc`：取消高风险执行确认
 
-## 构建与安装
+## 安装
+
+使用 `curl` 安装最新 release：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yuluo-yx/atAI/main/install.sh | sh
+```
+
+安装脚本会：
+
+- 从 GitHub Releases 下载与当前平台匹配的最新二进制
+- 从同一个 tag 的源码树中下载 `@ai` 包装脚本
+- 默认把 `atai` 和 `@ai` 安装到 `~/.local/bin`
+- 仅在运行时必需文件缺失时自动执行一次 `atai config init`
+- 如果 `~/.@ai` 已经初始化完成，则保留现有配置并跳过初始化
+
+可选环境变量：
+
+```bash
+ATAI_INSTALL_VERSION=2026.04.07 \
+ATAI_INSTALL_DIR="$HOME/.local/bin" \
+ATAI_INSTALL_REPO="yuluo-yx/atAI" \
+sh install.sh
+```
+
+如果 `~/.local/bin` 不在你的 `PATH` 中，需要先把它加进去。
+
+你也可以继续使用源码方式本地安装：
 
 ```bash
 make help
 make build
+make build BUILD_TARGET=aarch64-apple-darwin
+make build-all
 make fmt-check
 make check
 make test
@@ -191,7 +220,11 @@ make install
 - `atai`：Rust 编译出的主程序
 - `@ai`：一个包装脚本，会转发到同目录下的 `atai`
 
-如果 `~/.local/bin` 不在你的 `PATH` 中，需要先把它加进去。
+`make build-all` 会按 release 目标矩阵逐个构建，遇到缺少 Rust target、链接器或系统工具链时会立即失败。`x86_64-pc-windows-msvc` 通常需要在带有 MSVC 工具链的 Windows 主机上构建。
+
+`make install` 继续保持宿主平台安装语义，不负责安装跨平台构建产物。
+
+GitHub Releases 现在直接发布原始二进制，不再生成 `.tar.gz` 或 `.zip` 归档。
 
 ## 许可证
 

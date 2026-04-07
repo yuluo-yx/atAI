@@ -49,6 +49,9 @@ jobs:
           - display_name: macOS Intel x86_64
             os: macos-15-intel
             target: x86_64-apple-darwin
+          - display_name: macOS Apple Silicon arm64
+            os: macos-15
+            target: aarch64-apple-darwin
           - display_name: Windows x86_64
             os: windows-2022
             target: x86_64-pc-windows-msvc
@@ -72,56 +75,45 @@ jobs:
         shell: bash
         run: cargo build -p "${BINARY_NAME}" --release --target "${{ matrix.target }}"
 
-      - name: Package Unix Archive
+      - name: Prepare Unix Release Binary
         id: package_unix
         if: runner.os != 'Windows'
         shell: bash
         env:
           RELEASE_VERSION: ${{ needs.metadata.outputs.release_version }}
         run: |
-          archive_root="dist/${BINARY_NAME}-${RELEASE_VERSION}-${{ matrix.target }}"
-          archive_file="dist/${BINARY_NAME}-${RELEASE_VERSION}-${{ matrix.target }}.tar.gz"
+          asset_file="dist/${BINARY_NAME}-${RELEASE_VERSION}-${{ matrix.target }}"
+          mkdir -p dist
+          cp "target/${{ matrix.target }}/release/${BINARY_NAME}" "${asset_file}"
+          chmod +x "${asset_file}"
+          echo "asset_file=${asset_file}" >> "${GITHUB_OUTPUT}"
 
-          mkdir -p "${archive_root}"
-          cp "target/${{ matrix.target }}/release/${BINARY_NAME}" "${archive_root}/${BINARY_NAME}"
-          cp "scripts/@ai" "${archive_root}/@ai"
-          cp README.md README-zh.md LICENSE "${archive_root}/"
-          chmod +x "${archive_root}/${BINARY_NAME}" "${archive_root}/@ai"
-
-          tar -czf "${archive_file}" -C dist "$(basename "${archive_root}")"
-          echo "archive_file=${archive_file}" >> "${GITHUB_OUTPUT}"
-
-      - name: Package Windows Archive
+      - name: Prepare Windows Release Binary
         id: package_windows
         if: runner.os == 'Windows'
         shell: pwsh
         env:
           RELEASE_VERSION: ${{ needs.metadata.outputs.release_version }}
         run: |
-          $archiveRoot = "dist/${env:BINARY_NAME}-$env:RELEASE_VERSION-${{ matrix.target }}"
-          $archiveFile = "dist/${env:BINARY_NAME}-$env:RELEASE_VERSION-${{ matrix.target }}.zip"
+          $assetFile = "dist/${env:BINARY_NAME}-$env:RELEASE_VERSION-${{ matrix.target }}.exe"
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/${env:BINARY_NAME}.exe" $assetFile
+          "asset_file=$assetFile" >> $env:GITHUB_OUTPUT
 
-          New-Item -ItemType Directory -Path $archiveRoot -Force | Out-Null
-          Copy-Item "target/${{ matrix.target }}/release/${env:BINARY_NAME}.exe" "$archiveRoot/${env:BINARY_NAME}.exe"
-          Copy-Item "README.md","README-zh.md","LICENSE" $archiveRoot
-
-          Compress-Archive -Path "$archiveRoot/*" -DestinationPath $archiveFile -Force
-          "archive_file=$archiveFile" >> $env:GITHUB_OUTPUT
-
-      - name: Upload Unix Release Archive
+      - name: Upload Unix Release Binary
         if: runner.os != 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.target }}
-          path: ${{ steps.package_unix.outputs.archive_file }}
+          path: ${{ steps.package_unix.outputs.asset_file }}
           if-no-files-found: error
 
-      - name: Upload Windows Release Archive
+      - name: Upload Windows Release Binary
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.target }}
-          path: ${{ steps.package_windows.outputs.archive_file }}
+          path: ${{ steps.package_windows.outputs.asset_file }}
           if-no-files-found: error
 
   publish:
@@ -137,7 +129,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download Release Archives
+      - name: Download Release Binaries
         uses: actions/download-artifact@v4
         with:
           pattern: release-*
@@ -170,5 +162,4 @@ jobs:
           make_latest: true
           overwrite_files: true
           files: |
-            dist/*.tar.gz
-            dist/*.zip
+            dist/*
